@@ -1,6 +1,7 @@
 from model import *
 
 vae = torch.load('vae.pt')
+vae.train(False)
 
 def random_samples(m, l):
     for i in range(n_samples):
@@ -14,15 +15,21 @@ print('(d0)', tensor_to_string(d0))
 # random_samples()
 # print(m, l)
 
-m, l, z1, d1 = vae(char_tensor('ok'))
+m, l, z1, d1 = vae(char_tensor('Yeah'))
 print('(d1)', tensor_to_string(d1))
 # random_samples()
 
-rm = Variable(torch.FloatTensor(m.size()).normal_())
-rl = Variable(torch.FloatTensor(l.size()).normal_())
-z = vae.encoder.sample(m, l)
-z = vae.encoder.sample(rm, rl)
-print('(random)', tensor_to_string(vae.decoder.sample(z,  20)))
+def random_sample():
+    rm = Variable(torch.FloatTensor(m.size()).normal_())
+    rl = Variable(torch.FloatTensor(l.size()).normal_())
+    if USE_CUDA:
+        rm = rm.cuda()
+        rl = rl.cuda()
+    z = vae.encoder.sample(m, l)
+    z = vae.encoder.sample(rm, rl)
+    print('(random)', tensor_to_string(vae.decoder.sample(z,  20)))
+
+for i in range(10): random_sample()
 
 diff = z1 - z0
 n_samples = 10

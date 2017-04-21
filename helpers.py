@@ -8,6 +8,8 @@ import math
 import torch
 from torch.autograd import Variable
 
+USE_CUDA = True
+
 # Reading and un-unicode-encoding data
 
 all_characters = string.printable
@@ -29,7 +31,9 @@ def char_tensor(string, use_eos=False):
     for c in range(len(string)):
         tensor[c] = all_characters.index(string[c])
     if use_eos: tensor[-1] = EOS
-    return Variable(tensor)
+    tensor = Variable(tensor)
+    if USE_CUDA: tensor = tensor.cuda()
+    return tensor
 
 # Turn a tensor into a string
 
