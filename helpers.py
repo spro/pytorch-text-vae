@@ -1,0 +1,76 @@
+# https://github.com/spro/char-rnn.pytorch
+
+import unidecode
+import string
+import random
+import time
+import math
+import torch
+from torch.autograd import Variable
+
+# Reading and un-unicode-encoding data
+
+all_characters = string.printable
+n_characters = len(all_characters)
+SOS = n_characters
+EOS = n_characters + 1
+n_characters += 2
+
+def read_file(filename):
+    file = unidecode.unidecode(open(filename).read())
+    return file, len(file)
+
+# Turning a string into a tensor
+
+def char_tensor(string, use_eos=False):
+    size = len(string)
+    if use_eos: size += 1
+    tensor = torch.zeros(size).long()
+    for c in range(len(string)):
+        tensor[c] = all_characters.index(string[c])
+    if use_eos: tensor[-1] = EOS
+    return Variable(tensor)
+
+# Turn a tensor into a string
+
+def index_to_char(top_i):
+    if top_i == EOS:
+        return '$'
+    elif top_i == SOS:
+        return '^'
+    else:
+        return all_characters[top_i]
+
+def tensor_to_string(t):
+    s = ''
+    for i in range(t.size(0)):
+        ti = t[i]
+        top_k = ti.data.topk(1)
+        top_i = top_k[1][0]
+        s += index_to_char(top_i)
+    return s
+
+def tensors_to_string(t):
+    s = ''
+    for i in range(len(t)):
+        ti = t[i]
+        top_k = ti.data.topk(1)
+        top_i = top_k[1][0][0]
+        s += index_to_char(top_i)
+    return s
+
+def longtensor_to_string(t):
+    s = ''
+    for i in range(t.size(0)):
+        top_i = t.data[i]
+        s += index_to_char(top_i)
+    return s
+
+# Readable time elapsed
+
+def time_since(since):
+    s = time.time() - since
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' % (m, s)
+
