@@ -100,12 +100,14 @@ class DecoderRNN(nn.Module):
             output, hidden = self.step(z, input, hidden, True)
             outputs[i + 1] = output
 
-            # Sample top value only
-            top_i = output.data.topk(1)[1][0][0]
+            if MAX_SAMPLE:
+                # Sample top value only
+                top_i = output.data.topk(1)[1][0][0]
 
-            # Sample from the network as a multinomial distribution
-            # output_dist = output.data.view(-1).div(temperature).exp()
-            # top_i = torch.multinomial(output_dist, 1)[0]
+            else:
+                # Sample from the network as a multinomial distribution
+                output_dist = output.data.view(-1).div(temperature).exp()
+                top_i = torch.multinomial(output_dist, 1)[0]
 
             if top_i == EOS: break
             input = Variable(torch.LongTensor([top_i]))
