@@ -24,32 +24,29 @@ def random_training_set():
     target = char_tensor(line, True)
     return inp, target
 
-hidden_size = 200
+hidden_size = 500
 embed_size = 100
-learning_rate = 0.001
-n_epochs = 100000
-grad_clip = 0.05
+learning_rate = 0.0001
+n_epochs = 50000
+grad_clip = 0.5
 
 e = EncoderRNN(n_characters, hidden_size, embed_size)
 d = DecoderRNN(embed_size, hidden_size, n_characters, 2)
 vae = VAE(e, d)
 optimizer = torch.optim.Adam(vae.parameters(), lr=learning_rate)
 
-class_weights = torch.ones(n_characters)
-class_weights[SOS] = 5
-class_weights[EOS] = 5
-criterion = nn.CrossEntropyLoss(class_weights)
+criterion = nn.CrossEntropyLoss()
 
 if USE_CUDA:
     vae.cuda()
     criterion.cuda()
 
-job = sconce.Job('vae')
 log_every = 200
+save_every = 5000
+job = sconce.Job('vae')
 job.log_every = log_every
 
 kld_weight = 0.01
-temperature = 0.5
 
 def save():
     save_filename = 'vae.pt'
@@ -68,11 +65,10 @@ try:
         job.record(epoch, loss.data[0])
 
         KLD = (-0.5 * torch.sum(l - torch.pow(m, 2) - torch.exp(l) + 1, 1)).mean().squeeze()
-        KLD /= decoded.size(0)
         loss += KLD * kld_weight
 
-        if epoch > 10000 and kld_weight < 0.5:
-                kld_weight += 0.00001
+        if epoch > 20000 and kld_weight < 0.03:
+            kld_weight += 0.0000001
 
         loss.backward()
         torch.nn.utils.clip_grad_norm(vae.parameters(), grad_clip)
@@ -84,6 +80,9 @@ try:
             sampled = vae.decoder.sample(z, input.size(0))
             print('  (sampled) "%s"' % tensor_to_string(sampled))
             print('')
+
+        if epoch > 0 and epoch % save_every == 0:
+            save()
 
     save()
 
