@@ -6,7 +6,7 @@ from helpers import *
 
 MAX_LENGTH = 50
 MAX_SAMPLE = False
-TEMPERATURE = 0.5
+TEMPERATURE = 0.3
 
 class RNN:
     def init_hidden(self):

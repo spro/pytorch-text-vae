@@ -52,15 +52,7 @@ def tensor_to_string(t):
         top_k = ti.data.topk(1)
         top_i = top_k[1][0]
         s += index_to_char(top_i)
-    return s
-
-def tensors_to_string(t):
-    s = ''
-    for i in range(len(t)):
-        ti = t[i]
-        top_k = ti.data.topk(1)
-        top_i = top_k[1][0][0]
-        s += index_to_char(top_i)
+        if top_i == EOS: break
     return s
 
 def longtensor_to_string(t):
