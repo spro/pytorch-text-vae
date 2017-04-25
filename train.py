@@ -6,12 +6,12 @@ from model import *
 # Training
 # ------------------------------------------------------------------------------
 
-file, file_len = read_file('../char-rnn.pytorch/chats-chad.txt')
+file, file_len = read_file('./chats-chad.txt')
 # file, file_len = read_file('../practical-pytorch/data/first-names.txt')
 
 lines = [line.strip() for line in file.split('\n')]
 print('n lines', len(lines))
-def good_size(line): return len(line) > 1 and len(line) < 50
+def good_size(line): return len(line) > 1 and len(line) < MAX_LENGTH
 def good_content(line): return 'http' not in line and '/' not in line
 lines = list(filter(good_size, lines))
 lines = list(filter(good_content, lines))
@@ -30,7 +30,7 @@ learning_rate = 0.001
 n_epochs = 100000
 grad_clip = 0.05
 
-e = EncoderRNN(n_characters, hidden_size, embed_size)
+e = EncoderCNN(n_characters, hidden_size, embed_size)
 d = DecoderRNN(embed_size, hidden_size, n_characters, 2)
 vae = VAE(e, d)
 optimizer = torch.optim.Adam(vae.parameters(), lr=learning_rate)
@@ -81,7 +81,7 @@ try:
         if epoch % log_every == 0:
             print('[%d] %.4f (%.4f)' % (epoch, loss.data[0], kld_weight))
             print('   (target) "%s"' % longtensor_to_string(target))
-            sampled = vae.decoder.sample(z, input.size(0))
+            sampled = vae.decoder.sample(z, MAX_LENGTH)
             print('  (sampled) "%s"' % tensor_to_string(sampled))
             print('')
 
