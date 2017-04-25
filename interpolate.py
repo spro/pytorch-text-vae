@@ -1,40 +1,33 @@
 from model import *
 
 vae = torch.load('vae.pt')
-vae.train(False)
-
-def random_samples(m, l):
-    for i in range(n_samples):
-        m_jitter = torch.FloatTensor(m.size()).normal_()
-        l_jitter = torch.FloatTensor(l.size()).normal_()
-        z = vae.encoder.sample(m + m_jitter, l + l_jitter)
-        print('(?)', tensor_to_string(vae.decoder.sample(z, 20)))
-
-m, l, z0, d0 = vae(char_tensor('haha'))
-print('(d0)', tensor_to_string(d0))
-# random_samples()
-# print(m, l)
-
-m, l, z1, d1 = vae(char_tensor('Yeah'))
-print('(d1)', tensor_to_string(d1))
-# random_samples()
 
 def random_sample():
-    rm = Variable(torch.FloatTensor(m.size()).normal_())
-    rl = Variable(torch.FloatTensor(l.size()).normal_())
+    size = 100
+    rm = Variable(torch.FloatTensor(1, size).normal_())
+    rl = Variable(torch.FloatTensor(1, size).normal_())
     if USE_CUDA:
         rm = rm.cuda()
         rl = rl.cuda()
-    z = vae.encoder.sample(m, l)
     z = vae.encoder.sample(rm, rl)
-    print('(random)', tensor_to_string(vae.decoder.sample(z,  20)))
+    return z
 
-for i in range(10): random_sample()
+z0 = random_sample()
+z1 = random_sample()
 
 diff = z1 - z0
 n_samples = 10
 
-for i in range(n_samples + 1):
-    p = i / n_samples
-    print('(?)', tensor_to_string(vae.decoder.sample(z0 + diff * p, 20)))
+last_s = ''
+
+print('(z0)', tensor_to_string(vae.decoder.sample(z0,  MAX_LENGTH)))
+
+for i in range(1, n_samples):
+    p = i * 1.0 / n_samples
+    s = tensor_to_string(vae.decoder.sample(z0 + diff * p, MAX_LENGTH))
+    if last_s != s:
+        print('  .)', s)
+    last_s = s
+
+print('(z1)', tensor_to_string(vae.decoder.sample(z1,  MAX_LENGTH)))
 
