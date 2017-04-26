@@ -20,14 +20,16 @@ n_samples = 10
 
 last_s = ''
 
-print('(z0)', tensor_to_string(vae.decoder.sample(z0,  MAX_LENGTH)))
+TEMPERATURE = 0.08
+
+print('(z0)', tensor_to_string(vae.decoder.generate(z0,  MAX_LENGTH, TEMPERATURE)))
 
 for i in range(1, n_samples):
     p = i * 1.0 / n_samples
-    s = tensor_to_string(vae.decoder.sample(z0 + diff * p, MAX_LENGTH))
+    s = tensor_to_string(vae.decoder.generate(z0 + diff * p, MAX_LENGTH, TEMPERATURE))
     if last_s != s:
         print('  .)', s)
     last_s = s
 
-print('(z1)', tensor_to_string(vae.decoder.sample(z1,  MAX_LENGTH)))
+print('(z1)', tensor_to_string(vae.decoder.generate(z1,  MAX_LENGTH, TEMPERATURE)))
 

@@ -28,9 +28,9 @@ hidden_size = 500
 embed_size = 100
 learning_rate = 0.0001
 n_epochs = 50000
-grad_clip = 0.5
+grad_clip = 2.0
 
-e = EncoderCNN(n_characters, hidden_size, embed_size)
+e = EncoderRNN(n_characters, hidden_size, embed_size)
 d = DecoderRNN(embed_size, hidden_size, n_characters, 2)
 vae = VAE(e, d)
 optimizer = torch.optim.Adam(vae.parameters(), lr=learning_rate)
@@ -47,6 +47,7 @@ job = sconce.Job('vae')
 job.log_every = log_every
 
 kld_weight = 0.01
+temperature = 1.0
 
 def save():
     save_filename = 'vae.pt'
@@ -59,7 +60,9 @@ try:
 
         optimizer.zero_grad()
 
-        m, l, z, decoded = vae(input)
+        m, l, z, decoded = vae(input, temperature)
+        if temperature > 0.05:
+            temperature -= 0.00005
 
         loss = criterion(decoded, target)
         job.record(epoch, loss.data[0])
@@ -75,10 +78,10 @@ try:
         optimizer.step()
 
         if epoch % log_every == 0:
-            print('[%d] %.4f (%.4f)' % (epoch, loss.data[0], kld_weight))
+            print('[%d] %.4f (k=%.4f, t=%.4f)' % (epoch, loss.data[0], kld_weight, temperature))
             print('   (target) "%s"' % longtensor_to_string(target))
-            sampled = vae.decoder.sample(z, MAX_LENGTH)
-            print('  (sampled) "%s"' % tensor_to_string(sampled))
+            generated = vae.decoder.generate(z, MAX_LENGTH, temperature)
+            print('(generated) "%s"' % tensor_to_string(generated))
             print('')
 
         if epoch > 0 and epoch % save_every == 0:

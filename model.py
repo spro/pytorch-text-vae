@@ -6,7 +6,7 @@ from helpers import *
 
 MAX_LENGTH = 50
 MAX_SAMPLE = False
-TEMPERATURE = 0.3
+
 
 class RNN:
     def init_hidden(self):
@@ -23,10 +23,7 @@ class Encoder(nn.Module):
         return eps.mul(std).add_(mu)
 
 class Decoder(nn.Module):
-    def sample(self, z, n_steps):
-        pass
-
-    def output_to_input(self, output, temperature=TEMPERATURE):
+    def sample(self, output, temperature):
         if MAX_SAMPLE:
             # Sample top value only
             top_i = output.data.topk(1)[1][0][0]
@@ -40,34 +37,39 @@ class Decoder(nn.Module):
         if USE_CUDA: input = input.cuda()
         return input, top_i
 
-    def forward(self, z, inputs):
+    def forward(self, z, inputs, temperature):
         n_steps = inputs.size(0)
         outputs = Variable(torch.zeros(n_steps + 1, 1, self.output_size))
         if USE_CUDA: outputs = outputs.cuda()
 
         sos_tensor = Variable(torch.LongTensor([SOS]))
-        output, hidden = self.step(0, z, sos_tensor)
+        output, hidden = self.step(0, z, sos_tensor, None, temperature)
         outputs[0] = output
 
         for i in range(n_steps):
-            output, hidden = self.step(i, z, inputs[i], hidden, True)
+            use_teacher_forcing = random.random() < temperature
+            if use_teacher_forcing:
+                input = inputs[i]
+            else:
+                input, top_i = self.sample(output, temperature)
+            output, hidden = self.step(i, z, input, hidden, temperature, True)
             outputs[i + 1] = output
 
         return outputs.squeeze(1)
 
-    def sample(self, z, n_steps, use_dropout=True):
+    def generate(self, z, n_steps, temperature, use_dropout=True):
         outputs = Variable(torch.zeros(n_steps + 1, 1, self.output_size))
         if USE_CUDA: outputs = outputs.cuda()
 
         sos_tensor = Variable(torch.LongTensor([SOS]))
-        output, hidden = self.step(0, z, sos_tensor)
-        input, top_i = self.output_to_input(output)
+        output, hidden = self.step(0, z, sos_tensor, None, temperature)
+        input, top_i = self.sample(output, temperature)
         outputs[0] = output
 
-        for i in range(1, n_steps + 1):
-            output, hidden = self.step(i, z, input, hidden, use_dropout)
-            outputs[i] = output
-            input, top_i = self.output_to_input(output)
+        for i in range(0, n_steps):
+            output, hidden = self.step(i, z, input, hidden, temperature, use_dropout)
+            outputs[i + 1] = output
+            input, top_i = self.sample(output, temperature)
             if top_i == EOS: break
 
         return outputs.squeeze(1)
@@ -220,10 +222,9 @@ class DecoderRNN(Decoder, RNN):
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers)
         self.out = nn.Linear(hidden_size, output_size)
 
-    def step(self, s, z, input=None, hidden=None, use_dropout=False):
+    def step(self, s, z, input=None, hidden=None, temperature=1.0, use_dropout=False):
         # print('[DecoderRNN.step] s =', s, 'z =', z.size(), 'i =', input.size(), 'h =', hidden.size())
-        if s == 0:
-            # Forward SOS through without dropout
+        if s == 0: # Forward SOS through without dropout
             hidden = self.z2h(z).view(self.n_layers, 1, self.hidden_size)
             use_dropout = False
         input = self.embed(input)
@@ -242,9 +243,9 @@ class VAE(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
 
-    def forward(self, inputs):
+    def forward(self, inputs, temperature):
         m, l, z = self.encoder(inputs)
-        decoded = self.decoder(z, inputs)
+        decoded = self.decoder(z, inputs, temperature)
         return m, l, z, decoded
 
 # Test

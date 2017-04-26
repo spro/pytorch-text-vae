@@ -8,10 +8,9 @@ import math
 import torch
 from torch.autograd import Variable
 
-USE_CUDA = True
+USE_CUDA = False
 MAX_SAMPLE = True
 MAX_LENGTH = 40
-temperature = 0.7
 
 # Reading and un-unicode-encoding data
 
@@ -54,7 +53,6 @@ def tensor_to_string(t):
         ti = t[i]
         top_k = ti.data.topk(1)
         top_i = top_k[1][0]
-        if top_i == EOS: break
         s += index_to_char(top_i)
         if top_i == EOS: break
     return s
