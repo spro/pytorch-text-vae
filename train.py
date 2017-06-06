@@ -43,7 +43,7 @@ random.shuffle(lines)
 def random_training_set():
     line = random.choice(lines)
     inp = char_tensor(line)
-    target = char_tensor(line, True)
+    target = char_tensor(line)
     return inp, target
 
 e = EncoderRNN(n_characters, hidden_size, embed_size)
