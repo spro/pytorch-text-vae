@@ -8,9 +8,7 @@ import math
 import torch
 from torch.autograd import Variable
 
-USE_CUDA = False
-MAX_SAMPLE = True
-MAX_LENGTH = 40
+USE_CUDA = True
 
 # Reading and un-unicode-encoding data
 
@@ -26,15 +24,15 @@ def read_file(filename):
 
 # Turning a string into a tensor
 
-def char_tensor(string, use_eos=False):
-    size = len(string)
-    if use_eos: size += 1
+def char_tensor(string):
+    size = len(string) + 1
     tensor = torch.zeros(size).long()
     for c in range(len(string)):
         tensor[c] = all_characters.index(string[c])
-    if use_eos: tensor[-1] = EOS
+    tensor[-1] = EOS
     tensor = Variable(tensor)
-    if USE_CUDA: tensor = tensor.cuda()
+    if USE_CUDA:
+        tensor = tensor.cuda()
     return tensor
 
 # Turn a tensor into a string
